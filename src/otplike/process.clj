@@ -330,6 +330,8 @@
     (try
       (when link?
         (link pid))
+      (when (some? reg-name)
+        (register! pid reg-name))
       (catch Throwable t
         (let [reason (ex->reason t)]
           (swap! *processes dissoc (.id pid))
@@ -341,8 +343,6 @@
     (binding [*self* (.pid process)
               *message-context* (atom @*message-context*)]
       (try
-        (when (some? reg-name)
-          (register! pid reg-name))
         (call proc-fn pid args)
         (catch Throwable t
           (let [reason (ex->reason t)]
