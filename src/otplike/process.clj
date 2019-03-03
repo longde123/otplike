@@ -1095,7 +1095,9 @@
   - `:flags` - a map of process' flags (e.g. `{:trap-exit true}`)
   - `:link` - if `true`, sets a link to the parent process
   - `:register` - name to register the process, can not be pid, if name is
-    `nil` process will not be registered"
+    `nil` process will not be registered
+
+  Throws when there is another process registered under the same name."
   ([proc-func opts]
    (spawn-opt proc-func [] opts))
   ([proc-func args opts]

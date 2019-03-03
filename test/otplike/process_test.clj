@@ -1350,58 +1350,53 @@
         done (async/chan)
         pfn (proc-fn [] (is (await-completion! done 50)))]
     (process/spawn-opt pfn [] {:register reg-name})
-    (process/spawn
-     (proc-fn []
-       (let [pid (process/spawn-opt
-                  (proc-fn []) [] {:register reg-name :link true})]
-         (is
-          (thrown? Exception
-                   (process/receive!
-                     _ (str "spawned process must exit when name to register"
-                            " is already registered")
-                     (after 50
-                       (str "spawned process must exit when name to register"
-                            " is already registered")))))
-         (async/close! done))))
+    (is
+      (thrown? Exception
+        (throw
+          (process/spawn-opt
+            (proc-fn []) [] {:register reg-name})))
+      (str "process/spawn-opt with {:register <name>} must throw if <name> is "
+        "already registered"))
+    (async/close! done)
     (await-completion!! done 100))
   (let [done (async/chan)
         pfn1 (proc-fn []
                (is (match (<! (await-message 50))
-                          [:exit [(_ :guard process/pid?) :normal]] :ok)
-                   (str "spawn-link(ed) process must receive exit message"
-                        " with the reason of parent's exit"))
+                     [:exit [(_ :guard process/pid?) :normal]] :ok)
+                 (str "spawn-link(ed) process must receive exit message"
+                   " with the reason of parent's exit"))
                (async/close! done))
         pfn2 (proc-fn []
                (is (process/spawn-opt
                      pfn1 {:link true :flags {:trap-exit true}})
-                   "test failed"))]
+                 "test failed"))]
     (process/spawn pfn2)
     (await-completion!! done 200))
   (let [done (async/chan)
         pfn1 (proc-fn []
                (is (match (<! (await-message 50))
-                          [:exit [(_ :guard process/pid?) :abnormal]] :ok)
-                   (str "spawn-link(ed) process must receive exit message"
-                        " with the reason of parent's exit"))
+                     [:exit [(_ :guard process/pid?) :abnormal]] :ok)
+                 (str "spawn-link(ed) process must receive exit message"
+                   " with the reason of parent's exit"))
                (async/close! done))
         pfn2 (proc-fn []
                (is (process/spawn-opt
                      pfn1 {:link true :flags {:trap-exit true}})
-                   "test failed")
+                 "test failed")
                (process/exit :abnormal))]
     (process/spawn pfn2)
     (await-completion!! done 200))
   (let [done (async/chan)
         pfn1 (proc-fn []
                (is (match (<! (await-message 50))
-                          [:exit [(_ :guard process/pid?) :killed]] :ok)
-                   (str "spawn-link(ed) process must receive exit message"
-                        " with the reason of parent's exit"))
+                     [:exit [(_ :guard process/pid?) :killed]] :ok)
+                 (str "spawn-link(ed) process must receive exit message"
+                   " with the reason of parent's exit"))
                (async/close! done))
         pfn2 (proc-fn []
                (is (process/spawn-opt
                      pfn1 {:link true :flags {:trap-exit true}})
-                   "test failed")
+                 "test failed")
                (process/exit (process/self) :kill))]
     (process/spawn pfn2)
     (await-completion!! done 200)))
