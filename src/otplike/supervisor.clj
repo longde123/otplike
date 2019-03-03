@@ -846,16 +846,20 @@
   :ret ::process/async)
 (defn- handle-info [request state]
   ;;(printf "sup info: %s%n" request)
-  (match request
-    [:EXIT pid reason]
-    (process/with-async [res (handle-exit pid reason state)]
-      (match res
-        [:ok new-state] [:noreply new-state]
-        [:shutdown new-state] [:stop :shutdown new-state]))
-    
-    message
-    (do ;;(printf "sup %s -unexpected message: %s%n" (process/self) message)
-      (process/async-value [:noreply state]))))
+  (let [not-a-child? (->> state ::children (map ::pid) (apply hash-set) (complement))]
+    (match request
+      [:EXIT (_ :guard not-a-child?) :shutdown]
+      [:stop :shutdown state]
+      
+      [:EXIT pid reason]
+      (process/with-async [res (handle-exit pid reason state)]
+        (match res
+          [:ok new-state] [:noreply new-state]
+          [:shutdown new-state] [:stop :shutdown new-state]))
+      
+      message
+      (do ;;(printf "sup %s -unexpected message: %s%n" (process/self) message)
+        (process/async-value [:noreply state])))))
 (spec-util/instrument `handle-info)
 
 (spec/fdef terminate
